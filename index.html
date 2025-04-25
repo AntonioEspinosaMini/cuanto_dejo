@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>¿Cuánto dejo? | Calculadora de propinas</title>
+
+  <meta name="description" content="Calcula la propina perfecta según el servicio recibido. ¡Rápido y gratis!">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+    .float {
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+
+  <div class="w-full max-w-sm text-center">
+    <div class="text-6xl mb-2 float">💰</div>
+    <h1 class="text-2xl font-semibold text-gray-800 mb-2">¿Cuánto dejo de propina?</h1>
+    <h2 class="text-gray-600 mb-4">Calcula la propina perfecta según el servicio</h2>
+
+    <div class="bg-white rounded-xl shadow p-4 space-y-4">
+      <input id="totalCost" type="number" placeholder="Coste total (€)" class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-200" />
+
+      <div>
+        <label class="block text-sm text-gray-600 mb-1 flex justify-between">
+          Calidad del servicio <span id="serviceEmoji">😐</span>
+        </label>
+        <input id="serviceQuality" type="range" min="0" max="10" value="5" class="w-full" />
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-600 mb-1 flex justify-between">
+          Trato recibido <span id="treatmentEmoji">👌</span>
+        </label>
+        <input id="treatment" type="range" min="0" max="10" value="5" class="w-full" />
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-600 mb-1 flex justify-between">
+          Tu estilo 
+        </label>
+        <div id="generosityOptions" class="flex gap-2">
+          <button data-value="stingy"
+            class="generosity-btn flex-1 px-3 py-2 border rounded-lg text-sm bg-white hover:bg-gray-50 border-gray-300 text-gray-700 transition">
+            💸 Ahorrador
+          </button>
+          <button data-value="neutral"
+            class="generosity-btn flex-1 px-3 py-2 border rounded-lg text-sm bg-indigo-50 border-indigo-500 text-indigo-700 font-semibold">
+            🧍 Neutro
+          </button>
+          <button data-value="generous"
+            class="generosity-btn flex-1 px-3 py-2 border rounded-lg text-sm bg-white hover:bg-gray-50 border-gray-300 text-gray-700 transition">
+            🎁 Generoso
+          </button>
+        </div>
+      </div>
+
+      <div id="results" class="hidden">
+        <div class="flex flex-col sm:flex-row gap-2 justify-between">
+          <div class="flex-1 text-sm text-indigo-700 bg-indigo-50 p-2 rounded text-center">
+            Propina: <span id="tipAmount">0.00€</span>
+          </div>
+          <div class="flex-1 text-sm text-green-700 bg-green-50 p-2 rounded text-center">
+            Total: <span id="totalAmount">0.00€</span>
+          </div>
+        </div>
+      </div>
+
+      <button id="resetButton" class="w-full bg-indigo-500 text-white py-2 rounded hover:bg-indigo-600 transition">
+        Reiniciar
+      </button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const totalCostInput = document.getElementById('totalCost');
+      const serviceQualitySlider = document.getElementById('serviceQuality');
+      const treatmentSlider = document.getElementById('treatment');
+      const tipAmountElement = document.getElementById('tipAmount');
+      const totalAmountElement = document.getElementById('totalAmount');
+      const results = document.getElementById('results');
+      const resetButton = document.getElementById('resetButton');
+      const serviceEmoji = document.getElementById('serviceEmoji');
+      const treatmentEmoji = document.getElementById('treatmentEmoji');
+
+      let selectedGenerosity = 'neutral';
+      const generosityButtons = document.querySelectorAll('.generosity-btn');
+
+      generosityButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectedGenerosity = btn.dataset.value;
+
+          generosityButtons.forEach(b => {
+            b.classList.remove('bg-indigo-50', 'border-indigo-500', 'text-indigo-700', 'font-semibold');
+            b.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+          });
+
+          btn.classList.add('bg-indigo-50', 'border-indigo-500', 'text-indigo-700', 'font-semibold');
+          btn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
+
+          calculateTip();
+        });
+      });
+
+      function updateServiceEmoji(value) {
+        if (value <= 2) serviceEmoji.textContent = '😠';
+        else if (value <= 4) serviceEmoji.textContent = '😞';
+        else if (value <= 6) serviceEmoji.textContent = '😐';
+        else if (value <= 8) serviceEmoji.textContent = '🙂';
+        else serviceEmoji.textContent = '😊';
+      }
+
+      function updateTreatmentEmoji(value) {
+        if (value <= 2) treatmentEmoji.textContent = '👎';
+        else if (value <= 4) treatmentEmoji.textContent = '✋';
+        else if (value <= 6) treatmentEmoji.textContent = '👌';
+        else if (value <= 8) treatmentEmoji.textContent = '👍';
+        else treatmentEmoji.textContent = '👏';
+      }
+
+      function calculateTip() {
+        const cost = parseFloat(totalCostInput.value) || 0;
+        const service = parseInt(serviceQualitySlider.value);
+        const treatment = parseInt(treatmentSlider.value);
+
+        updateServiceEmoji(service);
+        updateTreatmentEmoji(treatment);
+
+        let tipPercent = 0;
+        if (service <= 3 || treatment <= 3) tipPercent = 0;
+        else if (service <= 7 && treatment <= 7) tipPercent = 10;
+        else tipPercent = 20;
+
+        if (selectedGenerosity === 'stingy') tipPercent /= 2;
+        else if (selectedGenerosity === 'generous') tipPercent *= 2;
+
+        const tip = (cost * tipPercent) / 100;
+        const total = cost + tip;
+
+        tipAmountElement.textContent = tip.toFixed(2) + '€';
+        totalAmountElement.textContent = total.toFixed(2) + '€';
+
+        results.classList.toggle('hidden', cost === 0);
+      }
+
+      totalCostInput.addEventListener('input', calculateTip);
+      serviceQualitySlider.addEventListener('input', calculateTip);
+      treatmentSlider.addEventListener('input', calculateTip);
+
+      resetButton.addEventListener('click', () => {
+        totalCostInput.value = '';
+        serviceQualitySlider.value = 5;
+        treatmentSlider.value = 5;
+        serviceEmoji.textContent = '😐';
+        treatmentEmoji.textContent = '👌';
+        selectedGenerosity = 'neutral';
+
+        generosityButtons.forEach(b => {
+          const isNeutral = b.dataset.value === 'neutral';
+          b.classList.toggle('bg-indigo-50', isNeutral);
+          b.classList.toggle('border-indigo-500', isNeutral);
+          b.classList.toggle('text-indigo-700', isNeutral);
+          b.classList.toggle('font-semibold', isNeutral);
+
+          b.classList.toggle('bg-white', !isNeutral);
+          b.classList.toggle('border-gray-300', !isNeutral);
+          b.classList.toggle('text-gray-700', !isNeutral);
+        });
+
+        results.classList.add('hidden');
+      });
+    });
+  </script>
+</body>
+<footer class="mt-8 text-center text-gray-500 text-sm pb-4">
+  Made with <span class="text-red-500">❤️</span> by
+  <a href="https://www.linkedin.com/in/antonio-espinosa-velasco" target="_blank"
+    class="text-blue-600 hover:underline" title="Enlace al LinkedIn del autor">
+    Antonio Espinosa
+  </a>
+  <div class="mt-2">
+    <a href="https://buymeacoffee.com/antonio.espinosa" target="_blank"
+      class="text-yellow-600 underline hover:text-yellow-700" title="Apóyame con un café">
+      ☕ Invítame a un café
+    </a>
+  </div>
+</footer>
+</html>
