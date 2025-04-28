@@ -11,25 +11,35 @@
 
   <style>
     body {
-      font-family: 'Poppins', sans-serif;
-    }
+		font-family: 'Poppins', sans-serif;
+		background-color: #fafafa;
+		transition: all 0.3s ease;
+	}
+	
     .float {
       font-size: 4rem;
       animation: float 3s ease-in-out infinite;
     }
+	
     @keyframes float {
       0% { transform: translateY(0); }
       50% { transform: translateY(-10px); }
       100% { transform: translateY(0); }
     }
+	
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-  <div class="w-full max-w-sm text-center">
-    <img src="cuanto_dejo.png" alt="Monedas" class="float mb-1">
-    <h1 class="text-2xl font-semibold text-gray-800 mb-2">¿Cuánto dejo de propina?</h1>
-    <h2 class="text-gray-600 mb-4">Calcula la propina perfecta según el servicio</h2>
+  <div class="w-full max-w-md mx-auto text-center">
+    <img src="assets/cuanto_dejo.png" alt="Propina" class="float mb-1 w-48 md:w-56 mx-auto">
+	
+	<h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
+		¿Cuánto dejo de propina?
+	</h1>
+	<h2 class="text-lg text-gray-600 mb-4">
+		Calcula la propina perfecta según el servicio.
+	</h2>
 
     <div class="bg-white rounded-xl shadow p-4 space-y-4">
       <input id="totalCost" type="number" placeholder="Coste total (€)" class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-200" />
@@ -133,29 +143,45 @@
       }
 
       function calculateTip() {
-        const cost = parseFloat(totalCostInput.value) || 0;
-        const service = parseInt(serviceQualitySlider.value);
-        const treatment = parseInt(treatmentSlider.value);
+		  const cost = parseFloat(totalCostInput.value) || 0;
+		  const service = parseInt(serviceQualitySlider.value);
+		  const treatment = parseInt(treatmentSlider.value);
 
-        updateServiceEmoji(service);
-        updateTreatmentEmoji(treatment);
+		  updateServiceEmoji(service);
+		  updateTreatmentEmoji(treatment);
 
-        let tipPercent = 0;
-        if (service <= 3 || treatment <= 3) tipPercent = 0;
-        else if (service <= 7 && treatment <= 7) tipPercent = 10;
-        else tipPercent = 20;
+		  // Si el servicio o trato está por debajo de 3, la propina es 0
+		  if (service < 3 || treatment < 3) {
+			tipAmountElement.textContent = "0.00€";
+			totalAmountElement.textContent = cost.toFixed(2) + '€';
+			results.classList.toggle('hidden', cost === 0);
+			return;
+		  }
 
-        if (selectedGenerosity === 'stingy') tipPercent /= 2;
-        else if (selectedGenerosity === 'generous') tipPercent *= 2;
+		  let serviceTipPercent = (service - 3) * (4 / 7); // 4% máximo para servicio
+		  let treatmentTipPercent = (treatment - 3) * (4 / 7); // 4% máximo para trato
 
-        const tip = (cost * tipPercent) / 100;
-        const total = cost + tip;
+		  // Total de la propina antes de ajustes por generosidad
+		  let tipPercent = serviceTipPercent + treatmentTipPercent;
 
-        tipAmountElement.textContent = tip.toFixed(2) + '€';
-        totalAmountElement.textContent = total.toFixed(2) + '€';
+		  // Si el porcentaje es mayor al 8%, lo limitamos a 8%
+		  tipPercent = Math.min(tipPercent, 8);
 
-        results.classList.toggle('hidden', cost === 0);
-      }
+		  // Ajuste según generosidad
+		  if (selectedGenerosity === 'stingy') {
+			tipPercent = tipPercent * 0.75; // Ahorrador tiene menos propina que neutro
+		  } else if (selectedGenerosity === 'generous') {
+			tipPercent = tipPercent * 1.5; // Generoso tiene más propina que neutro
+		  }
+
+		  const tip = (cost * tipPercent) / 100;
+		  const total = cost + tip;
+
+		  tipAmountElement.textContent = tip.toFixed(2) + '€';
+		  totalAmountElement.textContent = total.toFixed(2) + '€';
+
+		  results.classList.toggle('hidden', cost === 0);
+		}
 
       totalCostInput.addEventListener('input', calculateTip);
       serviceQualitySlider.addEventListener('input', calculateTip);
